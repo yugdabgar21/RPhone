@@ -31,7 +31,7 @@ jobs:
         run: yes | sdkmanager --licenses
 
       - name: Install Android SDK platform 37
-        run: sdkmanager "platforms;android-37"
+        run: sdkmanager "platforms;android-37.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
