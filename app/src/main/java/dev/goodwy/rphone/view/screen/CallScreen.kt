@@ -141,10 +141,13 @@ fun ExpressiveCallScreen(
     val hideAvatarWithBg = remember(settingsState) {
         preferenceManager.getBoolean(PreferenceManager.KEY_HIDE_AVATAR_WITH_BACKGROUND, false)
     }
-    val hasBackground = !backgroundUri.isNullOrEmpty()
     val defaultBg = remember(settingsState) { CallBackgroundStore.defaultModel(context) }
-    val customVisible = hasBackground && (backgroundUri != defaultBg)
-    val shouldShowAvatar = showCallScreenAvatar && !(hideAvatarWithBg && hasBackground) && !customVisible
+    val shouldShowAvatar = CallBackgroundStore.shouldShowAvatar(
+        showCallScreenAvatar = showCallScreenAvatar,
+        hideAvatarWithBg = hideAvatarWithBg,
+        backgroundUri = backgroundUri,
+        defaultBackgroundUri = defaultBg
+    )
 
     val globalBackdrop = LocalLiquidGlassBackdrop.current
     val liquidGlass = remember(settingsState) { preferenceManager.getBoolean(PreferenceManager.KEY_LIQUID_GLASS, false) }

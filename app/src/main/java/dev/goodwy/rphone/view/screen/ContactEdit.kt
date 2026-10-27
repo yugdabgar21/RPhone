@@ -351,7 +351,8 @@ fun ContactEditScreen(
     }
 
     val currentContactForPreview = remember(
-        namePrefix, givenName, middleName, familyName, nameSuffix, nickname, company, jobTitle, notes
+        namePrefix, givenName, middleName, familyName, nameSuffix, nickname, company, jobTitle, notes,
+        phoneNumbers.toList()
     ) {
         Contact(
             id = "",
@@ -1023,7 +1024,10 @@ fun ContactEditScreen(
                                 }
                                 Spacer(Modifier.width(32.dp))
                                 Box(contentAlignment = Alignment.BottomEnd) {
-                                    val displayBackground = tempCallBackground ?: callBackground
+                                    // A pending delete removes the background on save, so stop
+                                    // showing either the temporary or the stored one right away.
+                                    val displayBackground =
+                                        if (tempBackgroundDeleted) null else (tempCallBackground ?: callBackground)
                                     if (displayBackground != null) {
                                         AsyncImage(
                                             model = displayBackground,
@@ -1126,7 +1130,28 @@ fun ContactEditScreen(
                             contentPadding = PaddingValues(vertical = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(32.dp)
                         ) {
-                            item {
+                            // Mirror the delete-on-save state so the preview matches
+                            // what saving will produce.
+                            val previewBackground =
+                                if (tempBackgroundDeleted) null else (tempCallBackground ?: callBackground)
+                            if (previewBackground != null) {
+                                item(key = "call_screen_preview") {
+                                    CallScreenPreview(
+                                        contactName = getDisplayName(currentContactForPreview),
+                                        phoneNumber = phoneNumbers.firstOrNull { it.isNotBlank() }.orEmpty(),
+                                        photoUri = tempPhotoUri ?: photoUri,
+                                        backgroundUri = previewBackground,
+                                        style = CallScreenPreviewStyle.Default,
+                                        modifier = Modifier
+                                            .padding(horizontal = 16.dp)
+                                            .fillMaxWidth()
+                                            .height(240.dp)
+                                            .clip(RoundedCornerShape(cornerLargeDp))
+                                    )
+                                }
+                            }
+
+                            item(key = "name_fields") {
                                 var appeared by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) { appeared = true }
                                 val rowScale by animateFloatAsState(
@@ -1341,7 +1366,7 @@ fun ContactEditScreen(
                             }
 
                             // Organization
-                            item {
+                            item(key = "organization_fields") {
                                 var appeared by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) { appeared = true }
                                 val rowScale by animateFloatAsState(
@@ -1423,7 +1448,7 @@ fun ContactEditScreen(
                                 }
                             }
 
-                            item {
+                            item(key = "phone_fields") {
                                 Column(
                                     modifier = Modifier.animateContentSize(
                                         animationSpec = spring(
@@ -1474,7 +1499,7 @@ fun ContactEditScreen(
                             }
 
 
-                            item {
+                            item(key = "email_fields") {
                                 Column(
                                     modifier = Modifier.animateContentSize(
                                         animationSpec = spring(
@@ -1509,7 +1534,7 @@ fun ContactEditScreen(
                             }
 
 
-                            item {
+                            item(key = "event_fields") {
                                 Column(
                                     modifier = Modifier.animateContentSize(
                                         animationSpec = spring(
@@ -1543,7 +1568,7 @@ fun ContactEditScreen(
                             }
 
 
-                            item {
+                            item(key = "address_fields") {
                                 Column(
                                     modifier = Modifier.animateContentSize(
                                         animationSpec = spring(
@@ -1577,7 +1602,7 @@ fun ContactEditScreen(
                             }
 
                             // Notes
-                            item {
+                            item(key = "notes_field") {
                                 var appeared by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) { appeared = true }
                                 val rowScale by animateFloatAsState(
@@ -1615,7 +1640,7 @@ fun ContactEditScreen(
                                 )
                             }
 
-                            item {
+                            item(key = "add_field_button") {
                                 val interactionSource = remember { MutableInteractionSource() }
                                 val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -1643,7 +1668,7 @@ fun ContactEditScreen(
                                 }
                             }
 
-                            item {
+                            item(key = "save_to_account") {
                                 Surface(
                                     modifier = Modifier.padding(horizontal = paddingHorizontal),
                                     onClick = { showPicker = true },
@@ -1680,7 +1705,7 @@ fun ContactEditScreen(
                                 }
                             }
 
-                            item { Spacer(modifier = Modifier.height(100.dp)) }
+                            item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(100.dp)) }
                         }
                     }
                 } else {
@@ -1699,7 +1724,7 @@ fun ContactEditScreen(
                         contentPadding = PaddingValues(vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(32.dp)
                     ) {
-                        item {
+                        item(key = "photo_background_header") {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1798,7 +1823,10 @@ fun ContactEditScreen(
                                 }
                                 Spacer(Modifier.width(32.dp))
                                 Box(contentAlignment = Alignment.BottomEnd) {
-                                    val displayBackground = tempCallBackground ?: callBackground
+                                    // A pending delete removes the background on save, so stop
+                                    // showing either the temporary or the stored one right away.
+                                    val displayBackground =
+                                        if (tempBackgroundDeleted) null else (tempCallBackground ?: callBackground)
                                     if (displayBackground != null) {
                                         AsyncImage(
                                             model = displayBackground,
@@ -1886,7 +1914,28 @@ fun ContactEditScreen(
                             }
                         }
 
-                        item {
+                        // Mirror the delete-on-save state so the preview matches
+                        // what saving will produce.
+                        val previewBackground =
+                            if (tempBackgroundDeleted) null else (tempCallBackground ?: callBackground)
+                        if (previewBackground != null) {
+                            item(key = "call_screen_preview") {
+                                CallScreenPreview(
+                                    contactName = getDisplayName(currentContactForPreview),
+                                    phoneNumber = phoneNumbers.firstOrNull { it.isNotBlank() }.orEmpty(),
+                                    photoUri = tempPhotoUri ?: photoUri,
+                                    backgroundUri = previewBackground,
+                                    style = CallScreenPreviewStyle.Default,
+                                    modifier = Modifier
+                                        .padding(horizontal = paddingHorizontal)
+                                        .fillMaxWidth()
+                                        .height(240.dp)
+                                        .clip(RoundedCornerShape(cornerLargeDp))
+                                )
+                            }
+                        }
+
+                        item(key = "name_fields") {
                             var appeared by remember { mutableStateOf(false) }
                             LaunchedEffect(Unit) { appeared = true }
                             val rowScale by animateFloatAsState(
@@ -2101,7 +2150,7 @@ fun ContactEditScreen(
                         }
 
                         // Organization
-                        item {
+                        item(key = "organization_fields") {
                             var appeared by remember { mutableStateOf(false) }
                             LaunchedEffect(Unit) { appeared = true }
                             val rowScale by animateFloatAsState(
@@ -2184,7 +2233,7 @@ fun ContactEditScreen(
                         }
 
 
-                        item {
+                        item(key = "phone_fields") {
                             Column(
                                 modifier = Modifier.animateContentSize(
                                     animationSpec = spring(
@@ -2235,7 +2284,7 @@ fun ContactEditScreen(
                         }
 
 
-                        item {
+                        item(key = "email_fields") {
                             Column(
                                 modifier = Modifier.animateContentSize(
                                     animationSpec = spring(
@@ -2270,7 +2319,7 @@ fun ContactEditScreen(
                         }
 
 
-                        item {
+                        item(key = "event_fields") {
                             Column(
                                 modifier = Modifier.animateContentSize(
                                     animationSpec = spring(
@@ -2304,7 +2353,7 @@ fun ContactEditScreen(
                         }
 
 
-                        item {
+                        item(key = "address_fields") {
                             Column(
                                 modifier = Modifier.animateContentSize(
                                     animationSpec = spring(
@@ -2338,7 +2387,7 @@ fun ContactEditScreen(
                         }
 
                         // Notes
-                        item {
+                        item(key = "notes_field") {
                             var appeared by remember { mutableStateOf(false) }
                             LaunchedEffect(Unit) { appeared = true }
                             val rowScale by animateFloatAsState(
@@ -2376,7 +2425,7 @@ fun ContactEditScreen(
                             )
                         }
 
-                        item {
+                        item(key = "add_field_button") {
                             val interactionSource = remember { MutableInteractionSource() }
                             val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -2404,7 +2453,7 @@ fun ContactEditScreen(
                             }
                         }
 
-                        item {
+                        item(key = "save_to_account") {
                             val isNewContact = contactId == null || contactId == "0" || contactId == "null"
                             Surface(
                                 modifier = Modifier.padding(horizontal = paddingHorizontal),
@@ -2442,7 +2491,7 @@ fun ContactEditScreen(
                             }
                         }
 
-                        item { Spacer(modifier = Modifier.height(100.dp)) }
+                        item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(100.dp)) }
                     }
                 }
 

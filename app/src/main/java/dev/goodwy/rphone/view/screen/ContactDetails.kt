@@ -644,7 +644,10 @@ fun ContactDetailsScreen(
             onReset = {
                 // No need to refresh, as changes are saved immediately
                 showBackgroundDialog = false
-            }
+            },
+            contactName = displayName.orEmpty(),
+            photoUri = contact?.photoUri,
+            phoneNumber = knownNumbers.firstOrNull()
         )
     }
 
@@ -3121,7 +3124,10 @@ fun CallBackgroundBottomSheet(
     onDismiss: () -> Unit,
     onChange: () -> Unit,
     onRemove: () -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    contactName: String = "",
+    photoUri: String? = null,
+    phoneNumber: String? = null
 ) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -3203,10 +3209,12 @@ fun CallBackgroundBottomSheet(
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
             ) {
                 if (displayBackground != null) {
-                    AsyncImage(
-                        model = displayBackground,
-                        contentDescription = stringResource(R.string.contact_call_background_preview),
-                        contentScale = ContentScale.Crop,
+                    CallScreenPreview(
+                        contactName = contactName,
+                        phoneNumber = phoneNumber.orEmpty(),
+                        photoUri = photoUri,
+                        backgroundUri = displayBackground,
+                        style = CallScreenPreviewStyle.Large,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {

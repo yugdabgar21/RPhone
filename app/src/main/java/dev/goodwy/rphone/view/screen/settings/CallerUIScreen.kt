@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -40,7 +39,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import dev.goodwy.rphone.R
 import dev.goodwy.rphone.controller.util.PreferenceManager
 import dev.goodwy.rphone.view.components.NavigationIcon
@@ -57,6 +55,8 @@ import dev.goodwy.rphone.controller.util.CallBackgroundStore
 import dev.goodwy.rphone.view.components.SupportProjectItem
 import dev.goodwy.rphone.view.components.Title
 import dev.goodwy.rphone.view.components.shake
+import dev.goodwy.rphone.view.screen.CallScreenPreview
+import dev.goodwy.rphone.view.screen.CallScreenPreviewStyle
 import dev.goodwy.rphone.view.theme.customColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -214,18 +214,18 @@ fun CallerUIScreen(navigator: DestinationsNavigator) {
                                     .padding(horizontal = 2.dp)
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(20.dp))
-                                    .aspectRatio(2f)
+                                    .height(220.dp)
                                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (loadingBg) {
                                     CircularProgressIndicator()
                                 } else if (defaultCallBg != null) {
-                                    AsyncImage(
-                                        model = defaultCallBg,
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                    CallScreenPreview(
+                                        contactName = stringResource(R.string.label_unknown),
+                                        backgroundUri = defaultCallBg,
+                                        style = CallScreenPreviewStyle.Default,
+                                        modifier = Modifier.fillMaxSize()
                                     )
                                 } else {
                                     Icon(
