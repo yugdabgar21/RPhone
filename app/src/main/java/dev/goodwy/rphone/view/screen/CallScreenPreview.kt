@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.goodwy.rphone.R
 import dev.goodwy.rphone.controller.util.CallBackgroundStore
+import dev.goodwy.rphone.controller.util.CallingCardStyle
 import dev.goodwy.rphone.controller.util.PreferenceManager
+import dev.goodwy.rphone.controller.util.callingCardNameShadow
 import dev.goodwy.rphone.liquidglass.backdrops.rememberLayerBackdrop
 import org.koin.compose.koinInject
 
@@ -69,6 +72,7 @@ fun CallScreenPreview(
     photoUri: String? = null,
     backgroundUri: String? = null,
     style: CallScreenPreviewStyle = CallScreenPreviewStyle.Default,
+    callingCardStyle: CallingCardStyle = CallingCardStyle.ThemeDefault,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -96,6 +100,14 @@ fun CallScreenPreview(
     // visible text so the number is not rendered twice.
     val showNumber = phoneNumber.isNotBlank() &&
         phoneNumber.withoutBidiMarks() != contactName.withoutBidiMarks()
+    // Match the real call screen: when the contact has no own background, the
+    // global default is what the user actually sees.
+    val effectiveBackgroundUri = backgroundUri ?: defaultBackgroundUri
+    val nameColor = callingCardStyle.textColor ?: MaterialTheme.colorScheme.onSurface
+    val nameShadow = callingCardNameShadow(
+        color = nameColor,
+        hasBackground = !effectiveBackgroundUri.isNullOrEmpty()
+    )
     val backdrop = rememberLayerBackdrop()
 
     Box(
@@ -105,7 +117,7 @@ fun CallScreenPreview(
     ) {
         ExpressiveBackground(
             photoUri = photoUri,
-            backgroundUri = backgroundUri,
+            backgroundUri = effectiveBackgroundUri,
             liquidGlassBackdrop = backdrop,
             hideGradient = false,
             enableParticles = false
@@ -130,9 +142,13 @@ fun CallScreenPreview(
 
             Text(
                 text = displayName,
-                style = MaterialTheme.typography.headlineSmall.copy(fontSize = style.nameFontSize),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = style.nameFontSize,
+                    fontFamily = callingCardStyle.font.family,
+                    shadow = nameShadow
+                ),
                 fontWeight = style.nameFontWeight,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = nameColor,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

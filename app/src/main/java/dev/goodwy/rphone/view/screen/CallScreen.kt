@@ -72,6 +72,8 @@ import dev.goodwy.rphone.view.theme.color_call_end
 import dev.goodwy.rphone.controller.util.formatDuration
 import dev.goodwy.rphone.controller.util.PreferenceManager
 import dev.goodwy.rphone.controller.util.CallBackgroundStore
+import dev.goodwy.rphone.controller.util.CallingCardStyle
+import dev.goodwy.rphone.controller.util.callingCardNameShadow
 import dev.goodwy.rphone.controller.util.forceLtr
 import dev.goodwy.rphone.controller.util.hasCapability
 import dev.goodwy.rphone.controller.util.isHD
@@ -101,6 +103,7 @@ fun ExpressiveCallScreen(
     audioState: CallAudioState?,
     initialConnectTime: Long = 0L,
     backgroundUri: String? = null,
+    callingCardStyle: CallingCardStyle = CallingCardStyle.ThemeDefault,
     skipIncomingScreen: Boolean = false,
     isConference: Boolean,
     liquidGlassBackdrop: LayerBackdrop
@@ -401,11 +404,20 @@ fun ExpressiveCallScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        val nameColor =
+                            callingCardStyle.textColor ?: MaterialTheme.colorScheme.onSurface
+                        val nameShadow = callingCardNameShadow(
+                            color = nameColor,
+                            hasBackground = !backgroundUri.isNullOrEmpty()
+                        )
                         Text(
                             text = contactName,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontFamily = callingCardStyle.font.family,
+                                shadow = nameShadow
+                            ),
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = nameColor,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

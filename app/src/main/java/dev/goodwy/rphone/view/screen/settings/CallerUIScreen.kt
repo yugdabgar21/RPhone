@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.goodwy.rphone.R
 import dev.goodwy.rphone.controller.util.PreferenceManager
@@ -52,11 +53,14 @@ import com.ramcosta.composedestinations.generated.destinations.DonateScreenDesti
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.goodwy.rphone.controller.PurchaseHelper
 import dev.goodwy.rphone.controller.util.CallBackgroundStore
+import dev.goodwy.rphone.controller.util.CallingCardStore
+import dev.goodwy.rphone.controller.util.CallingCardStyle
 import dev.goodwy.rphone.view.components.SupportProjectItem
 import dev.goodwy.rphone.view.components.Title
 import dev.goodwy.rphone.view.components.shake
 import dev.goodwy.rphone.view.screen.CallScreenPreview
 import dev.goodwy.rphone.view.screen.CallScreenPreviewStyle
+import dev.goodwy.rphone.view.screen.CallingCardEditorDialog
 import dev.goodwy.rphone.view.theme.customColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,30 +98,68 @@ fun CallerUIScreen(navigator: DestinationsNavigator) {
     var hangupWidth by remember(settingsState) { mutableFloatStateOf(prefs.getFloat(PreferenceManager.KEY_HANGUP_WIDTH, 0.5f).coerceIn(0.1f, 1.0f)) }
 
     var defaultCallBg by remember { mutableStateOf<String?>(null) }
+    var defaultCardStyle by remember { mutableStateOf(CallingCardStyle.ThemeDefault) }
+    var hasDefaultCardStyle by remember { mutableStateOf(false) }
+    var showCallingCardEditor by remember { mutableStateOf(false) }
     var loadingBg by remember { mutableStateOf(true) }
     LaunchedEffect(settingsState) {
         loadingBg = true
         defaultCallBg = CallBackgroundStore.defaultModelAsync(context)
+        val storedStyle = CallingCardStore.peekDefault(context)
+        hasDefaultCardStyle = storedStyle != null
+        defaultCardStyle = storedStyle ?: CallingCardStyle.ThemeDefault
         loadingBg = false
     }
     var savingCallBg by remember { mutableStateOf(false) }
-    val defaultCallBgLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+
+    if (showCallingCardEditor) {
+        CallingCardEditorDialog(
+            contactName = stringResource(R.string.label_unknown),
+            phoneNumber = "",
+            contactPhotoUri = null,
+            initialBackgroundUri = defaultCallBg,
+            initialStyle = defaultCardStyle,
+            fallbackStyle = CallingCardStyle.ThemeDefault,
+            onDismiss = { showCallingCardEditor = false },
+            onDone = { result ->
+                showCallingCardEditor = false
+                scope.launch {
+                    savingCallBg = true
+                    if (result.backgroundUri != defaultCallBg) {
+                        if (result.backgroundUri == null) {
+                            CallBackgroundStore.clearDefault(context)
+                            defaultCallBg = null
+                        } else {
+                            val ok = CallBackgroundStore.saveDefault(
+                                context,
+                                result.backgroundUri.toUri()
+                            )
+                            if (ok) {
+                                defaultCallBg = CallBackgroundStore.defaultModelAsync(context)
+                            }
+                        }
+                    }
+
+                    val nextStyle = result.style
+                    when {
+                        nextStyle == null -> {
+                            CallingCardStore.clearDefault(context)
+                            defaultCardStyle = CallingCardStyle.ThemeDefault
+                            hasDefaultCardStyle = false
+                        }
+                        // Done without customizing must not create a global style.
+                        !hasDefaultCardStyle && nextStyle == CallingCardStyle.ThemeDefault -> Unit
+                        nextStyle == defaultCardStyle -> Unit
+                        else -> {
+                            CallingCardStore.saveDefault(context, nextStyle)
+                            defaultCardStyle = nextStyle
+                            hasDefaultCardStyle = true
+                        }
+                    }
+                    savingCallBg = false
+                }
             }
-            scope.launch {
-                savingCallBg = true
-                val ok = CallBackgroundStore.saveDefault(context, uri)
-                savingCallBg = false
-                if (ok) defaultCallBg = CallBackgroundStore.defaultModelAsync(context)
-            }
-        }
+        )
     }
 
     val rotation =
@@ -206,6 +248,15 @@ fun CallerUIScreen(navigator: DestinationsNavigator) {
                                         lineHeight = MaterialTheme.typography.bodyMedium.fontSize, //14.sp
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    if (hasDefaultCardStyle) {
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            stringResource(R.string.calling_card_style_customized),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            lineHeight = MaterialTheme.typography.bodyMedium.fontSize,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                             Spacer(Modifier.height(16.dp))
@@ -220,11 +271,12 @@ fun CallerUIScreen(navigator: DestinationsNavigator) {
                             ) {
                                 if (loadingBg) {
                                     CircularProgressIndicator()
-                                } else if (defaultCallBg != null) {
+                                } else if (defaultCallBg != null || hasDefaultCardStyle) {
                                     CallScreenPreview(
                                         contactName = stringResource(R.string.label_unknown),
                                         backgroundUri = defaultCallBg,
                                         style = CallScreenPreviewStyle.Default,
+                                        callingCardStyle = defaultCardStyle,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 } else {
@@ -263,7 +315,7 @@ fun CallerUIScreen(navigator: DestinationsNavigator) {
                                 FilledTonalButton(
                                     onClick = {
                                         if (isPro) {
-                                            defaultCallBgLauncher.launch(arrayOf("image/*"))
+                                            showCallingCardEditor = true
                                         } else {
                                             enabledShake = true
                                             showSnackbar = true
