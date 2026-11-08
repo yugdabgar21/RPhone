@@ -39,12 +39,14 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
 
       - name: Run fossDebug unit tests
-        run: ./gradlew testFossDebugUnitTest
+        run: gradle testFossDebugUnitTest
 
       - name: Build fossDebug APK
-        run: ./gradlew assembleFossDebug
+        run: gradle assembleFossDebug
 
       - name: Upload fossDebug APK
         if: success()
